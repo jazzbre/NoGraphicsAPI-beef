@@ -1,0 +1,465 @@
+#include "nographicsapi.h"
+void nga_init_uint32x2(nga_uint32x2* value)
+{
+    *value = {};
+}
+void nga_init_uint32x3(nga_uint32x3* value)
+{
+    *value = {};
+}
+void nga_init_SizeAlign(nga_SizeAlign* value)
+{
+    *value = {};
+}
+void nga_init_GpuRange(nga_GpuRange* value)
+{
+    *value = {};
+}
+void nga_init_GpuCpuRange(nga_GpuCpuRange* value)
+{
+    *value = {};
+}
+void nga_init_GpuHeap(nga_GpuHeap* value)
+{
+    *value = {};
+}
+void nga_init_TextureHeap(nga_TextureHeap* value)
+{
+    *value = {};
+}
+void nga_init_TimelinePoint(nga_TimelinePoint* value)
+{
+    *value = {};
+}
+void nga_init_TextureFormatInfo(nga_TextureFormatInfo* value)
+{
+    *value = {};
+}
+void nga_init_DeviceCaps(nga_DeviceCaps* value)
+{
+    *value = {};
+}
+void nga_init_DeviceDesc(nga_DeviceDesc* value)
+{
+    *value = {};
+}
+void nga_init_DeviceInit(nga_DeviceInit* value)
+{
+    *value = {};
+}
+void nga_init_SwapchainFrame(nga_SwapchainFrame* value)
+{
+    *value = {};
+}
+void nga_init_TextureDesc(nga_TextureDesc* value)
+{
+    *value = {};
+}
+void nga_init_RenderViewDesc(nga_RenderViewDesc* value)
+{
+    *value = {};
+}
+void nga_init_TextureDescriptorDesc(nga_TextureDescriptorDesc* value)
+{
+    *value = {};
+}
+void nga_init_TextureCopyDesc(nga_TextureCopyDesc* value)
+{
+    *value = {};
+}
+void nga_init_SamplerDesc(nga_SamplerDesc* value)
+{
+    *value = {};
+}
+void nga_init_BlendComponentState(nga_BlendComponentState* value)
+{
+    *value = {};
+}
+void nga_init_BlendState(nga_BlendState* value)
+{
+    *value = {};
+}
+void nga_init_ColorTargetDesc(nga_ColorTargetDesc* value)
+{
+    *value = {};
+}
+void nga_init_RasterizationState(nga_RasterizationState* value)
+{
+    *value = {};
+}
+void nga_init_Viewport(nga_Viewport* value)
+{
+    *value = {};
+}
+void nga_init_Scissor(nga_Scissor* value)
+{
+    *value = {};
+}
+void nga_init_StencilFaceState(nga_StencilFaceState* value)
+{
+    *value = {};
+}
+void nga_init_DepthStencilState(nga_DepthStencilState* value)
+{
+    *value = {};
+}
+void nga_init_GraphicsPSODesc(nga_GraphicsPSODesc* value)
+{
+    *value = {};
+}
+void nga_init_MeshPSODesc(nga_MeshPSODesc* value)
+{
+    *value = {};
+}
+void nga_init_ClearColor(nga_ClearColor* value)
+{
+    *value = {};
+}
+void nga_init_ColorAttachment(nga_ColorAttachment* value)
+{
+    *value = {};
+}
+void nga_init_DepthAttachment(nga_DepthAttachment* value)
+{
+    *value = {};
+}
+void nga_init_StencilAttachment(nga_StencilAttachment* value)
+{
+    *value = {};
+}
+void nga_init_RenderingDesc(nga_RenderingDesc* value)
+{
+    *value = {};
+}
+void nga_init_HeapAllocation(nga_HeapAllocation* value)
+{
+    *value = {};
+}
+void nga_init_PlacedTexture(nga_PlacedTexture* value)
+{
+    *value = {};
+}
+struct DeferredCallback
+{
+    nga_DeleteCallback callback;
+    void* context;
+    void operator()() noexcept
+    {
+        callback(context);
+    }
+};
+void nga_get_texture_format_info(nga_Format format, nga_TextureFormatInfo* result)
+{
+    *result = gpu::get_texture_format_info(format);
+}
+void nga_create_device(const nga_DeviceDesc* desc, nga_DeviceInit* result)
+{
+    *result = gpu::create_device(*desc);
+}
+void nga_destroy_device(nga_Device* device)
+{
+    gpu::destroy_device(device);
+}
+void nga_get_device_caps(const nga_Device* device, nga_DeviceCaps* result)
+{
+    *result = gpu::get_device_caps(device);
+}
+bool nga_supports_texture_format(const nga_Device* device, nga_Format format, nga_TextureUsage usage)
+{
+    return gpu::supports_texture_format(device, format, usage);
+}
+void nga_get_drawable_extent(nga_Device* device, nga_uint32x2* result)
+{
+    *result = gpu::get_drawable_extent(device);
+}
+nga_TimelineSemaphore* nga_create_timeline_semaphore(nga_Device* device, uint64_t initial_value)
+{
+    return gpu::create_timeline_semaphore(device, initial_value);
+}
+void nga_destroy_timeline_semaphore(nga_TimelineSemaphore* semaphore)
+{
+    gpu::destroy_timeline_semaphore(semaphore);
+}
+uint64_t nga_timeline_completed_value(const nga_TimelineSemaphore* semaphore)
+{
+    return gpu::timeline_completed_value(semaphore);
+}
+void nga_wait_timeline(const nga_TimelinePoint* point)
+{
+    gpu::wait_timeline(*point);
+}
+void nga_wait_idle(nga_Device* device)
+{
+    gpu::wait_idle(device);
+}
+void nga_acquire(nga_Device* device, nga_SwapchainFrame* result)
+{
+    *result = gpu::acquire(device);
+}
+void nga_submit_and_present(nga_Device* device, const nga_CommandBufferSpan* commands, const nga_TimelinePoint* completion)
+{
+    gpu::submit_and_present(device, *commands, *completion);
+}
+void nga_create_gpu_heap(nga_Device* device, uint64_t byte_count, nga_MemoryType memory, nga_GpuHeap* result)
+{
+    *result = gpu::create_gpu_heap(device, byte_count, memory);
+}
+void nga_destroy_gpu_heap(const nga_GpuHeap* heap)
+{
+    gpu::destroy_gpu_heap(*heap);
+}
+void nga_create_texture_heap(nga_Device* device, uint64_t byte_count, nga_TextureHeap* result)
+{
+    *result = gpu::create_texture_heap(device, byte_count);
+}
+void nga_destroy_texture_heap(const nga_TextureHeap* heap)
+{
+    gpu::destroy_texture_heap(*heap);
+}
+void nga_get_texture_size_align(nga_Device* device, const nga_TextureDesc* desc, nga_SizeAlign* result)
+{
+    *result = gpu::get_texture_size_align(device, *desc);
+}
+nga_Texture* nga_create_texture(nga_Device* device, const nga_TextureDesc* desc, const nga_TextureHeap* heap, uint64_t offset)
+{
+    return gpu::create_texture(device, *desc, *heap, offset);
+}
+void nga_destroy_texture(nga_Texture* texture)
+{
+    gpu::destroy_texture(texture);
+}
+nga_RenderView* nga_create_render_view(nga_Texture* texture, const nga_RenderViewDesc* desc)
+{
+    return gpu::create_render_view(texture, *desc);
+}
+void nga_destroy_render_view(nga_RenderView* render_view)
+{
+    gpu::destroy_render_view(render_view);
+}
+void nga_write_texture_descriptor(
+    nga_Device* device,
+    void* cpu_destination,
+    const nga_Texture* texture,
+    nga_TextureDescriptorType type,
+    const nga_TextureDescriptorDesc* desc
+)
+{
+    gpu::write_texture_descriptor(device, cpu_destination, texture, type, *desc);
+}
+void nga_write_sampler_descriptor(nga_Device* device, void* cpu_destination, const nga_SamplerDesc* desc)
+{
+    gpu::write_sampler_descriptor(device, cpu_destination, *desc);
+}
+nga_PSO* nga_create_graphics_pso(nga_Device* device, const nga_GraphicsPSODesc* desc)
+{
+    return gpu::create_graphics_pso(device, *desc);
+}
+nga_PSO* nga_create_mesh_pso(nga_Device* device, const nga_MeshPSODesc* desc)
+{
+    return gpu::create_mesh_pso(device, *desc);
+}
+nga_PSO* nga_create_compute_pso(nga_Device* device, const nga_UInt32Span* compute_spirv)
+{
+    return gpu::create_compute_pso(device, *compute_spirv);
+}
+void nga_destroy_pso(nga_PSO* pso)
+{
+    gpu::destroy_pso(pso);
+}
+nga_CommandBuffer* nga_begin_commands(nga_Device* device)
+{
+    return gpu::begin_commands(device);
+}
+void nga_submit(const nga_CommandBufferSpan* commands, const nga_TimelinePoint* completion)
+{
+    gpu::submit(*commands, *completion);
+}
+void nga_set_texture_descriptor_heap(nga_CommandBuffer* commands, const nga_GpuRange* heap)
+{
+    gpu::set_texture_descriptor_heap(commands, *heap);
+}
+void nga_set_sampler_descriptor_heap(nga_CommandBuffer* commands, const nga_GpuRange* heap)
+{
+    gpu::set_sampler_descriptor_heap(commands, *heap);
+}
+void nga_copy_memory(nga_CommandBuffer* commands, const nga_GpuRange* source, const nga_GpuRange* destination)
+{
+    gpu::copy_memory(commands, *source, *destination);
+}
+void nga_copy_memory_to_texture(nga_CommandBuffer* commands, const nga_GpuRange* source, nga_Texture* destination, const nga_TextureCopyDesc* copy)
+{
+    gpu::copy_memory_to_texture(commands, *source, destination, *copy);
+}
+void nga_copy_texture_to_memory(nga_CommandBuffer* commands, nga_Texture* source, const nga_GpuRange* destination, const nga_TextureCopyDesc* copy)
+{
+    gpu::copy_texture_to_memory(commands, source, *destination, *copy);
+}
+void nga_barrier(nga_CommandBuffer* commands, nga_Stage before, nga_Access before_access, nga_Stage after, nga_Access after_access)
+{
+    gpu::barrier(commands, before, before_access, after, after_access);
+}
+void nga_write_timestamp(nga_CommandBuffer* commands, uint64_t* gpu_destination, nga_Stage stage)
+{
+    gpu::write_timestamp(commands, gpu_destination, stage);
+}
+void nga_begin_render_pass(nga_CommandBuffer* commands, const nga_RenderingDesc* desc)
+{
+    gpu::begin_render_pass(commands, *desc);
+}
+void nga_end_render_pass(nga_CommandBuffer* commands)
+{
+    gpu::end_render_pass(commands);
+}
+void nga_set_viewport(nga_CommandBuffer* commands, const nga_Viewport* viewport)
+{
+    gpu::set_viewport(commands, *viewport);
+}
+void nga_set_scissor(nga_CommandBuffer* commands, const nga_Scissor* scissor)
+{
+    gpu::set_scissor(commands, *scissor);
+}
+void nga_set_depth_stencil(nga_CommandBuffer* commands, const nga_DepthStencilState* state)
+{
+    gpu::set_depth_stencil(commands, *state);
+}
+void nga_bind_pso(nga_CommandBuffer* commands, const nga_PSO* pso)
+{
+    gpu::bind_pso(commands, pso);
+}
+void nga_draw(
+    nga_CommandBuffer* commands,
+    const nga_ByteSpan* root,
+    uint32_t vertex_count,
+    uint32_t instance_count,
+    uint32_t first_vertex,
+    uint32_t first_instance
+)
+{
+    gpu::draw(commands, *root, vertex_count, instance_count, first_vertex, first_instance);
+}
+void nga_draw_indexed(
+    nga_CommandBuffer* commands,
+    const nga_ByteSpan* root,
+    const nga_GpuRange* indices,
+    nga_IndexType type,
+    uint32_t index_count,
+    uint32_t instance_count,
+    uint32_t first_index,
+    int32_t vertex_offset,
+    uint32_t first_instance
+)
+{
+    gpu::draw_indexed(commands, *root, *indices, type, index_count, instance_count, first_index, vertex_offset, first_instance);
+}
+void nga_draw_indirect(nga_CommandBuffer* commands, const nga_ByteSpan* root, const nga_GpuRange* arguments, uint32_t draw_count, uint32_t stride)
+{
+    gpu::draw_indirect(commands, *root, *arguments, draw_count, stride);
+}
+void nga_draw_indexed_indirect(
+    nga_CommandBuffer* commands,
+    const nga_ByteSpan* root,
+    const nga_GpuRange* indices,
+    nga_IndexType type,
+    const nga_GpuRange* arguments,
+    uint32_t draw_count,
+    uint32_t stride
+)
+{
+    gpu::draw_indexed_indirect(commands, *root, *indices, type, *arguments, draw_count, stride);
+}
+void nga_dispatch(nga_CommandBuffer* commands, const nga_ByteSpan* root, const nga_uint32x3* group_count)
+{
+    gpu::dispatch(commands, *root, *group_count);
+}
+void nga_dispatch_indirect(nga_CommandBuffer* commands, const nga_ByteSpan* root, const nga_GpuRange* arguments)
+{
+    gpu::dispatch_indirect(commands, *root, *arguments);
+}
+void nga_draw_meshlets(nga_CommandBuffer* commands, const nga_ByteSpan* root, const nga_uint32x3* group_count)
+{
+    gpu::draw_meshlets(commands, *root, *group_count);
+}
+void nga_draw_meshlets_indirect(nga_CommandBuffer* commands, const nga_ByteSpan* root, const nga_GpuRange* arguments, uint32_t draw_count, uint32_t stride)
+{
+    gpu::draw_meshlets_indirect(commands, *root, *arguments, draw_count, stride);
+}
+nga_BumpAllocator* nga_create_bump_allocator(const nga_GpuCpuRange* storage)
+{
+    return new gpu::BumpAllocator(*storage);
+}
+void nga_destroy_bump_allocator(nga_BumpAllocator* allocator)
+{
+    delete allocator;
+}
+void nga_bump_allocate(nga_BumpAllocator* allocator, uint64_t byte_size, nga_GpuCpuRange* result)
+{
+    *result = allocator->allocate(byte_size);
+}
+void nga_bump_allocate_atomic(nga_BumpAllocator* allocator, uint64_t byte_size, nga_GpuCpuRange* result)
+{
+    *result = allocator->allocate_atomic(byte_size);
+}
+void nga_reset_bump_allocator(nga_BumpAllocator* allocator)
+{
+    allocator->reset();
+}
+nga_HeapAllocator* nga_create_heap_allocator(const nga_GpuCpuRange* storage, uint32_t max_allocations)
+{
+    return new gpu::HeapAllocator(*storage, max_allocations);
+}
+void nga_destroy_heap_allocator(nga_HeapAllocator* allocator)
+{
+    delete allocator;
+}
+void nga_heap_allocate(nga_HeapAllocator* allocator, uint64_t byte_size, nga_HeapAllocation* result)
+{
+    *result = allocator->allocate(byte_size);
+}
+void nga_heap_free(nga_HeapAllocator* allocator, const nga_HeapAllocation* allocation)
+{
+    allocator->free(*allocation);
+}
+void nga_reset_heap_allocator(nga_HeapAllocator* allocator)
+{
+    allocator->reset();
+}
+nga_TextureAllocator* nga_create_texture_allocator(nga_Device* device, const nga_TextureHeap* heap, uint32_t max_textures)
+{
+    return new gpu::TextureAllocator(device, *heap, max_textures);
+}
+void nga_destroy_texture_allocator(nga_TextureAllocator* allocator)
+{
+    delete allocator;
+}
+void nga_allocate_placed_texture(nga_TextureAllocator* allocator, const nga_TextureDesc* desc, nga_PlacedTexture* result)
+{
+    *result = allocator->allocate(*desc);
+}
+void nga_free_placed_texture(nga_TextureAllocator* allocator, nga_PlacedTexture* texture)
+{
+    allocator->free(*texture);
+}
+nga_DeleteQueue* nga_create_delete_queue(nga_TimelineSemaphore* timeline, uint32_t capacity)
+{
+    return new gpu::DeleteQueue(timeline, capacity);
+}
+void nga_destroy_delete_queue(nga_DeleteQueue* queue)
+{
+    delete queue;
+}
+void nga_tick_delete_queue(nga_DeleteQueue* queue)
+{
+    queue->tick();
+}
+void nga_drain_delete_queue(nga_DeleteQueue* queue)
+{
+    queue->drain();
+}
+void nga_defer_delete(nga_DeleteQueue* queue, uint64_t retire_value, nga_DeleteCallback callback, void* context)
+{
+    queue->defer(retire_value, DeferredCallback{ callback, context });
+}
+void nga_gpu_range(const nga_GpuCpuRange* range, nga_GpuRange* result)
+{
+    *result = gpu::gpu_range(*range);
+}

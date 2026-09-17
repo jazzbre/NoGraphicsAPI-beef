@@ -1,0 +1,21 @@
+FileVersion = 1
+Dependencies = {corlib = "*"}
+[Project]
+Name = "NoGraphicsAPI-beef"
+DefaultNamespace = "NoGraphicsAPI"
+
+[Configs.Debug.Win64]
+OtherLinkFlags = "$(LinkFlags) user32.lib"
+LibPaths = ["$(ProjectDir)/build/windows_vs2022/lib/Debug/NoGraphicsAPIBeef.lib", "$(ProjectDir)/build/windows_vs2022/lib/Debug/NoGraphicsAPI.lib", "$(ProjectDir)/build/windows_vs2022/lib/Debug/NoGraphicsAPIUtility_allocators.lib", "$(ProjectDir)/build/windows_vs2022/lib/Debug/NoGraphicsAPIUtility_textures.lib", "$(ProjectDir)/build/windows_vs2022/lib/vulkan-1.lib"]
+
+[Configs.Release.Win64]
+OtherLinkFlags = "$(LinkFlags) user32.lib"
+LibPaths = ["$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIBeef.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPI.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIUtility_allocators.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIUtility_textures.lib", "$(ProjectDir)/build/windows_vs2022/lib/vulkan-1.lib"]
+
+[Configs.Paranoid.Win64]
+OtherLinkFlags = "$(LinkFlags) user32.lib"
+LibPaths = ["$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIBeef.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPI.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIUtility_allocators.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIUtility_textures.lib", "$(ProjectDir)/build/windows_vs2022/lib/vulkan-1.lib"]
+
+[Configs.Test.Win64]
+OtherLinkFlags = "$(LinkFlags) user32.lib"
+LibPaths = ["$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIBeef.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPI.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIUtility_allocators.lib", "$(ProjectDir)/build/windows_vs2022/lib/Release/NoGraphicsAPIUtility_textures.lib", "$(ProjectDir)/build/windows_vs2022/lib/vulkan-1.lib"]

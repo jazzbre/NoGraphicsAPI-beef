@@ -1,0 +1,4 @@
+FileVersion = 1
+Projects = {NoGraphicsAPI-beef = {Path = "."}, example = {Path = "example"}}
+[Workspace]
+StartupProject = "example"

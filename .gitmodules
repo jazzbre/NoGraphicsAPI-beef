@@ -1,0 +1,3 @@
+[submodule "submodules/NoGraphicsAPI"]
+	path = submodules/NoGraphicsAPI
+	url = git@github.com:sebbbi/NoGraphicsAPI.git

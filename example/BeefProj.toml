@@ -1,0 +1,18 @@
+FileVersion = 1
+Dependencies = {corlib = "*", NoGraphicsAPI-beef = "*"}
+[Project]
+Name = "example"
+StartupObject = "Example.Program"
+DefaultNamespace = "Example"
+
+[Configs.Debug.Win64]
+LibPaths = ["$(ProjectDir)/../build/windows_vs2022/lib/Debug/NoGraphicsAPIExample.lib"]
+
+[Configs.Release.Win64]
+LibPaths = ["$(ProjectDir)/../build/windows_vs2022/lib/Release/NoGraphicsAPIExample.lib"]
+
+[Configs.Paranoid.Win64]
+LibPaths = ["$(ProjectDir)/../build/windows_vs2022/lib/Release/NoGraphicsAPIExample.lib"]
+
+[Configs.Test.Win64]
+LibPaths = ["$(ProjectDir)/../build/windows_vs2022/lib/Release/NoGraphicsAPIExample.lib"]
