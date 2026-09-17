@@ -1,0 +1,134 @@
+{
+    "public_api_hashes": {
+        "bump_allocator.hpp": "abd582d2a6521cffad5d6a32f46278b431a571d70b3a181539db81f683329fb1",
+        "heap_allocator.hpp": "144fe70043c438141d3352a8803990a59d66612942ee0f2601c33e9071a49dab",
+        "texture_allocator.hpp": "2975c8a642d9fb40cbb5f194f73d96590cd8a661fc5633aca2f51873ac9ff55b",
+        "delete_queue.hpp": "4f7aa8506e504613481ee1c0f37f46e7ed34a8300cf73e83184bda78742d8eb9"
+    },
+    "functions": [
+        [
+            "BumpAllocator*",
+            "create_bump_allocator",
+            "GpuCpuRange storage",
+            "new gpu::BumpAllocator(*storage)"
+        ],
+        [
+            "void",
+            "destroy_bump_allocator",
+            "BumpAllocator* allocator",
+            "delete allocator"
+        ],
+        [
+            "GpuCpuRange",
+            "bump_allocate",
+            "BumpAllocator* allocator, uint64 byte_size",
+            "allocator->allocate(byte_size)"
+        ],
+        [
+            "GpuCpuRange",
+            "bump_allocate_atomic",
+            "BumpAllocator* allocator, uint64 byte_size",
+            "allocator->allocate_atomic(byte_size)"
+        ],
+        [
+            "void",
+            "reset_bump_allocator",
+            "BumpAllocator* allocator",
+            "allocator->reset()"
+        ],
+        [
+            "HeapAllocator*",
+            "create_heap_allocator",
+            "GpuCpuRange storage, uint32 max_allocations",
+            "new gpu::HeapAllocator(*storage, max_allocations)"
+        ],
+        [
+            "void",
+            "destroy_heap_allocator",
+            "HeapAllocator* allocator",
+            "delete allocator"
+        ],
+        [
+            "HeapAllocation",
+            "heap_allocate",
+            "HeapAllocator* allocator, uint64 byte_size",
+            "allocator->allocate(byte_size)"
+        ],
+        [
+            "void",
+            "heap_free",
+            "HeapAllocator* allocator, HeapAllocation allocation",
+            "allocator->free(*allocation)"
+        ],
+        [
+            "void",
+            "reset_heap_allocator",
+            "HeapAllocator* allocator",
+            "allocator->reset()"
+        ],
+        [
+            "TextureAllocator*",
+            "create_texture_allocator",
+            "Device* device, TextureHeap heap, uint32 max_textures",
+            "new gpu::TextureAllocator(device, *heap, max_textures)"
+        ],
+        [
+            "void",
+            "destroy_texture_allocator",
+            "TextureAllocator* allocator",
+            "delete allocator"
+        ],
+        [
+            "PlacedTexture",
+            "allocate_placed_texture",
+            "TextureAllocator* allocator, TextureDesc desc",
+            "allocator->allocate(*desc)"
+        ],
+        [
+            "void",
+            "free_placed_texture",
+            "TextureAllocator* allocator, PlacedTexture* texture",
+            "allocator->free(*texture)"
+        ],
+        [
+            "DeleteQueue*",
+            "create_delete_queue",
+            "TimelineSemaphore* timeline, uint32 capacity",
+            "new gpu::DeleteQueue(timeline, capacity)"
+        ],
+        [
+            "void",
+            "destroy_delete_queue",
+            "DeleteQueue* queue",
+            "delete queue"
+        ],
+        [
+            "void",
+            "tick_delete_queue",
+            "DeleteQueue* queue",
+            "queue->tick()"
+        ],
+        [
+            "void",
+            "drain_delete_queue",
+            "DeleteQueue* queue",
+            "queue->drain()"
+        ],
+        [
+            "void",
+            "defer_delete",
+            "DeleteQueue* queue, uint64 retire_value, DeleteCallback callback, void* context",
+            "queue->defer(retire_value, DeferredCallback{callback, context})"
+        ],
+        [
+            "GpuRange",
+            "gpu_range",
+            "GpuCpuRange range",
+            "gpu::gpu_range(*range)"
+        ]
+    ],
+    "support_header_hashes": {
+        "include/NoGraphicsAPI/span.hpp": "58affe75ae37822473fa18f9cf193d52a23ee03a5f9911a4b380c1319b155d5e",
+        "include/NoGraphicsAPI/types.h": "1b1ccb720d116ae9f887ea0b844840e06eb27428d7c900b491f34455eaddd9bb"
+    }
+}
