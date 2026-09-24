@@ -22,6 +22,8 @@ if exist "submodules\NoGraphicsAPI\.git" (
     for /f "delims=" %%F in ('git -C submodules\NoGraphicsAPI ls-files --others --exclude-standard') do goto dirty
 )
 
+git submodule sync --recursive -- submodules/NoGraphicsAPI
+if errorlevel 1 goto failed
 git submodule update --init --remote --recursive --checkout -- submodules/NoGraphicsAPI
 if errorlevel 1 goto failed
 python tools\generate_bindings.py

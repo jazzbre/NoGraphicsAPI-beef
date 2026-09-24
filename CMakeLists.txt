@@ -7,9 +7,11 @@ string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 add_subdirectory(submodules/NoGraphicsAPI)
-configure_file("${Vulkan_LIBRARY}" "${CMAKE_BINARY_DIR}/lib/vulkan-1.lib" COPYONLY)
+if(NOT NOGRAPHICSAPI_BACKEND STREQUAL "d3d12")
+    message(FATAL_ERROR "This Beef branch uses D3D12. Configure with -DNOGRAPHICSAPI_BACKEND=d3d12")
+endif()
 add_library(NoGraphicsAPIBeef STATIC csrc/nographicsapi.cpp)
-target_link_libraries(NoGraphicsAPIBeef PUBLIC NoGraphicsAPIUtility::textures)
+target_link_libraries(NoGraphicsAPIBeef PUBLIC NoGraphicsAPIUtility::textures NoGraphicsAPIUtility::uploads)
 target_include_directories(NoGraphicsAPIBeef PUBLIC csrc)
 NoGraphicsAPI_disable_exceptions(NoGraphicsAPIBeef)
 add_library(NoGraphicsAPIExample STATIC example/csrc/example.cpp submodules/NoGraphicsAPI/examples/common/example_support.cpp)
@@ -18,13 +20,11 @@ target_link_libraries(NoGraphicsAPIExample PRIVATE NoGraphicsAPI::NoGraphicsAPI 
 NoGraphicsAPI_disable_exceptions(NoGraphicsAPIExample)
 target_compile_definitions(NoGraphicsAPIExample PRIVATE NOGRAPHICSAPI_SHADER_DIRECTORY="${CMAKE_BINARY_DIR}/shaders")
 find_program(SLANGC slangc REQUIRED)
-find_program(SPIRV_VAL spirv-val REQUIRED)
 foreach(stage vertex fragment)
-    set(shader "${CMAKE_BINARY_DIR}/shaders/triangle.${stage}.spv")
+    set(shader "${CMAKE_BINARY_DIR}/shaders/triangle.${stage}.dxil")
     add_custom_command(OUTPUT "${shader}"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/shaders"
-        COMMAND "${SLANGC}" "${CMAKE_CURRENT_SOURCE_DIR}/example/triangle.slang" -target spirv -profile spirv_1_5 -emit-spirv-directly -fvk-use-entrypoint-name -fvk-use-c-layout -matrix-layout-row-major -entry ${stage}Main -stage ${stage} -o "${shader}"
-        COMMAND "${SPIRV_VAL}" --target-env vulkan1.4 --scalar-block-layout "${shader}"
+        COMMAND "${SLANGC}" "${CMAKE_CURRENT_SOURCE_DIR}/example/triangle.slang" -target dxil -profile sm_6_6 -DNGA_D3D12=1 -matrix-layout-row-major -entry ${stage}Main -stage ${stage} -o "${shader}"
         DEPENDS example/triangle.slang VERBATIM)
     list(APPEND triangle_shaders "${shader}")
 endforeach()

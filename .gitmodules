@@ -1,3 +1,4 @@
 [submodule "submodules/NoGraphicsAPI"]
 	path = submodules/NoGraphicsAPI
-	url = git@github.com:sebbbi/NoGraphicsAPI.git
+	url = git@github.com:jazzbre/NoGraphicsAPI.git
+	branch = d3d12-backend

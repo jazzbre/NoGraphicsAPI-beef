@@ -10,7 +10,10 @@ typedef void (*nga_DeleteCallback)(void* context);
 #include <NoGraphicsAPIUtility/delete_queue.hpp>
 #include <NoGraphicsAPIUtility/heap_allocator.hpp>
 #include <NoGraphicsAPIUtility/texture_allocator.hpp>
+#include <NoGraphicsAPIUtility/texture_upload.hpp>
+#include <NoGraphicsAPIUtility/upload_queue.hpp>
 using nga_Device = gpu::Device;
+using nga_CommandPool = gpu::CommandPool;
 using nga_Texture = gpu::Texture;
 using nga_RenderView = gpu::RenderView;
 using nga_PSO = gpu::PSO;
@@ -22,6 +25,7 @@ using nga_BumpAllocator = gpu::BumpAllocator;
 using nga_HeapAllocator = gpu::HeapAllocator;
 using nga_TextureAllocator = gpu::TextureAllocator;
 using nga_DeleteQueue = gpu::DeleteQueue;
+using nga_UploadQueue = gpu::UploadQueue;
 using nga_Error = gpu::Error;
 using nga_MemoryType = gpu::MemoryType;
 using nga_Format = gpu::Format;
@@ -41,6 +45,7 @@ using nga_StoreOp = gpu::StoreOp;
 using nga_StencilOp = gpu::StencilOp;
 using nga_Stage = gpu::Stage;
 using nga_Access = gpu::Access;
+using nga_RenderingFlags = gpu::RenderingFlags;
 using nga_uint32x2 = gpu::uint32x2;
 using nga_uint32x3 = gpu::uint32x3;
 using nga_SizeAlign = gpu::SizeAlign;
@@ -49,6 +54,7 @@ using nga_GpuCpuRange = gpu::GpuCpuRange<gpu::byte>;
 using nga_GpuHeap = gpu::GpuHeap;
 using nga_TextureHeap = gpu::TextureHeap;
 using nga_TimelinePoint = gpu::TimelinePoint;
+using nga_SubmitDesc = gpu::SubmitDesc;
 using nga_TextureFormatInfo = gpu::TextureFormatInfo;
 using nga_DeviceCaps = gpu::DeviceCaps;
 using nga_DeviceDesc = gpu::DeviceDesc;
@@ -76,13 +82,16 @@ using nga_StencilAttachment = gpu::StencilAttachment;
 using nga_RenderingDesc = gpu::RenderingDesc;
 using nga_HeapAllocation = gpu::HeapAllocation<gpu::byte>;
 using nga_PlacedTexture = gpu::PlacedTexture;
+using nga_UploadQueueStats = gpu::UploadQueueStats;
 using nga_UInt32Span = gpu::Span<const gpu::uint32>;
 using nga_ColorTargetSpan = gpu::Span<const gpu::ColorTargetDesc>;
 using nga_ColorAttachmentSpan = gpu::Span<const gpu::ColorAttachment>;
 using nga_CommandBufferSpan = gpu::Span<gpu::CommandBuffer* const>;
 using nga_ByteSpan = gpu::ByteSpan;
+using nga_TimelinePointSpan = gpu::Span<const gpu::TimelinePoint>;
 #else
 typedef struct nga_Device nga_Device;
+typedef struct nga_CommandPool nga_CommandPool;
 typedef struct nga_Texture nga_Texture;
 typedef struct nga_RenderView nga_RenderView;
 typedef struct nga_PSO nga_PSO;
@@ -94,6 +103,7 @@ typedef struct nga_BumpAllocator nga_BumpAllocator;
 typedef struct nga_HeapAllocator nga_HeapAllocator;
 typedef struct nga_TextureAllocator nga_TextureAllocator;
 typedef struct nga_DeleteQueue nga_DeleteQueue;
+typedef struct nga_UploadQueue nga_UploadQueue;
 typedef uint8_t nga_Error;
 #define NGA_Error_none ((nga_Error)(0))
 #define NGA_Error_unsupported ((nga_Error)(NGA_Error_none + 1))
@@ -129,15 +139,13 @@ typedef uint8_t nga_Format;
 #define NGA_Format_rgba16_uint ((nga_Format)(NGA_Format_rg16_uint + 1))
 #define NGA_Format_r32_uint ((nga_Format)(NGA_Format_rgba16_uint + 1))
 #define NGA_Format_rg32_uint ((nga_Format)(NGA_Format_r32_uint + 1))
-#define NGA_Format_rgb32_uint ((nga_Format)(NGA_Format_rg32_uint + 1))
-#define NGA_Format_rgba32_uint ((nga_Format)(NGA_Format_rgb32_uint + 1))
+#define NGA_Format_rgba32_uint ((nga_Format)(NGA_Format_rg32_uint + 1))
 #define NGA_Format_r16_float ((nga_Format)(NGA_Format_rgba32_uint + 1))
 #define NGA_Format_rg16_float ((nga_Format)(NGA_Format_r16_float + 1))
 #define NGA_Format_rgba16_float ((nga_Format)(NGA_Format_rg16_float + 1))
 #define NGA_Format_r32_float ((nga_Format)(NGA_Format_rgba16_float + 1))
 #define NGA_Format_rg32_float ((nga_Format)(NGA_Format_r32_float + 1))
-#define NGA_Format_rgb32_float ((nga_Format)(NGA_Format_rg32_float + 1))
-#define NGA_Format_rgba32_float ((nga_Format)(NGA_Format_rgb32_float + 1))
+#define NGA_Format_rgba32_float ((nga_Format)(NGA_Format_rg32_float + 1))
 #define NGA_Format_rgb10a2_unorm ((nga_Format)(NGA_Format_rgba32_float + 1))
 #define NGA_Format_rg11b10_float ((nga_Format)(NGA_Format_rgb10a2_unorm + 1))
 #define NGA_Format_d16_unorm ((nga_Format)(NGA_Format_rg11b10_float + 1))
@@ -264,6 +272,10 @@ typedef uint64_t nga_Access;
 #define NGA_Access_index_read ((nga_Access)(1ull << 9u))
 #define NGA_Access_host_read ((nga_Access)(1ull << 10u))
 #define NGA_Access_descriptor_read ((nga_Access)(1ull << 11u))
+typedef uint32_t nga_RenderingFlags;
+#define NGA_RenderingFlags_none ((nga_RenderingFlags)(0))
+#define NGA_RenderingFlags_suspending ((nga_RenderingFlags)(2))
+#define NGA_RenderingFlags_resuming ((nga_RenderingFlags)(4))
 typedef struct nga_uint32x2 nga_uint32x2;
 typedef struct nga_uint32x3 nga_uint32x3;
 typedef struct nga_SizeAlign nga_SizeAlign;
@@ -272,6 +284,7 @@ typedef struct nga_GpuCpuRange nga_GpuCpuRange;
 typedef struct nga_GpuHeap nga_GpuHeap;
 typedef struct nga_TextureHeap nga_TextureHeap;
 typedef struct nga_TimelinePoint nga_TimelinePoint;
+typedef struct nga_SubmitDesc nga_SubmitDesc;
 typedef struct nga_TextureFormatInfo nga_TextureFormatInfo;
 typedef struct nga_DeviceCaps nga_DeviceCaps;
 typedef struct nga_DeviceDesc nga_DeviceDesc;
@@ -299,11 +312,13 @@ typedef struct nga_StencilAttachment nga_StencilAttachment;
 typedef struct nga_RenderingDesc nga_RenderingDesc;
 typedef struct nga_HeapAllocation nga_HeapAllocation;
 typedef struct nga_PlacedTexture nga_PlacedTexture;
+typedef struct nga_UploadQueueStats nga_UploadQueueStats;
 typedef struct nga_UInt32Span nga_UInt32Span;
 typedef struct nga_ColorTargetSpan nga_ColorTargetSpan;
 typedef struct nga_ColorAttachmentSpan nga_ColorAttachmentSpan;
 typedef struct nga_CommandBufferSpan nga_CommandBufferSpan;
 typedef struct nga_ByteSpan nga_ByteSpan;
+typedef struct nga_TimelinePointSpan nga_TimelinePointSpan;
 struct nga_UInt32Span
 {
     uint32_t* data;
@@ -327,6 +342,11 @@ struct nga_CommandBufferSpan
 struct nga_ByteSpan
 {
     uint8_t* data;
+    size_t size;
+};
+struct nga_TimelinePointSpan
+{
+    nga_TimelinePoint* data;
     size_t size;
 };
 struct nga_uint32x2
@@ -371,6 +391,12 @@ struct nga_TimelinePoint
     nga_TimelineSemaphore* semaphore;
     uint64_t value;
 };
+struct nga_SubmitDesc
+{
+    nga_CommandBufferSpan commands;
+    nga_TimelinePointSpan waits;
+    nga_TimelinePoint completion;
+};
 struct nga_TextureFormatInfo
 {
     nga_uint32x2 block_extent;
@@ -381,6 +407,11 @@ struct nga_TextureFormatInfo
 struct nga_DeviceCaps
 {
     const char* device_name;
+    uint32_t queue_count;
+    uint32_t general_queue_count;
+    uint32_t compute_queue_count;
+    uint32_t copy_queue_count;
+    nga_uint32x3 copy_texture_granularity;
     uint64_t max_push_data_size;
     uint64_t texture_heap_alignment;
     uint64_t texture_descriptor_size;
@@ -396,6 +427,9 @@ struct nga_DeviceDesc
     void* window;
     nga_Format swapchain_format;
     uint32_t desired_swapchain_image_count;
+    uint32_t desired_queue_count;
+    uint32_t desired_compute_queue_count;
+    uint32_t desired_copy_queue_count;
     uint32_t timestamp_query_count;
 };
 struct nga_DeviceInit
@@ -577,7 +611,18 @@ struct nga_PlacedTexture
     nga_Texture* texture;
     uint32_t token;
 };
+struct nga_UploadQueueStats
+{
+    uint64_t capacity;
+    uint64_t bytes_in_use;
+    uint64_t peak_bytes;
+    uint64_t submissions;
+    uint64_t waits;
+    uint32_t pending_batches;
+    uint32_t pending_operations;
+};
 #endif
+typedef void (*nga_UploadComputeCallback)(nga_CommandBuffer* commands, const nga_GpuCpuRange* staging, void* context);
 #ifdef __cplusplus
 extern "C"
 {
@@ -590,6 +635,7 @@ extern "C"
     void nga_init_GpuHeap(nga_GpuHeap* value);
     void nga_init_TextureHeap(nga_TextureHeap* value);
     void nga_init_TimelinePoint(nga_TimelinePoint* value);
+    void nga_init_SubmitDesc(nga_SubmitDesc* value);
     void nga_init_TextureFormatInfo(nga_TextureFormatInfo* value);
     void nga_init_DeviceCaps(nga_DeviceCaps* value);
     void nga_init_DeviceDesc(nga_DeviceDesc* value);
@@ -617,6 +663,7 @@ extern "C"
     void nga_init_RenderingDesc(nga_RenderingDesc* value);
     void nga_init_HeapAllocation(nga_HeapAllocation* value);
     void nga_init_PlacedTexture(nga_PlacedTexture* value);
+    void nga_init_UploadQueueStats(nga_UploadQueueStats* value);
     void nga_get_texture_format_info(nga_Format format, nga_TextureFormatInfo* result);
     void nga_create_device(const nga_DeviceDesc* desc, nga_DeviceInit* result);
     void nga_destroy_device(nga_Device* device);
@@ -628,14 +675,14 @@ extern "C"
     uint64_t nga_timeline_completed_value(const nga_TimelineSemaphore* semaphore);
     void nga_wait_timeline(const nga_TimelinePoint* point);
     void nga_wait_idle(nga_Device* device);
-    void nga_acquire(nga_Device* device, nga_SwapchainFrame* result);
-    void nga_submit_and_present(nga_Device* device, const nga_CommandBufferSpan* commands, const nga_TimelinePoint* completion);
+    void nga_acquire(nga_CommandBuffer* commands, nga_SwapchainFrame* result);
+    void nga_submit_and_present(nga_Device* device, const nga_SubmitDesc* desc);
     void nga_create_gpu_heap(nga_Device* device, uint64_t byte_count, nga_MemoryType memory, nga_GpuHeap* result);
     void nga_destroy_gpu_heap(const nga_GpuHeap* heap);
     void nga_create_texture_heap(nga_Device* device, uint64_t byte_count, nga_TextureHeap* result);
     void nga_destroy_texture_heap(const nga_TextureHeap* heap);
     void nga_get_texture_size_align(nga_Device* device, const nga_TextureDesc* desc, nga_SizeAlign* result);
-    nga_Texture* nga_create_texture(nga_Device* device, const nga_TextureDesc* desc, const nga_TextureHeap* heap, uint64_t offset);
+    nga_Texture* nga_create_texture(nga_CommandBuffer* commands, const nga_TextureDesc* desc, const nga_TextureHeap* heap, uint64_t offset);
     void nga_destroy_texture(nga_Texture* texture);
     nga_RenderView* nga_create_render_view(nga_Texture* texture, const nga_RenderViewDesc* desc);
     void nga_destroy_render_view(nga_RenderView* render_view);
@@ -651,8 +698,12 @@ extern "C"
     nga_PSO* nga_create_mesh_pso(nga_Device* device, const nga_MeshPSODesc* desc);
     nga_PSO* nga_create_compute_pso(nga_Device* device, const nga_UInt32Span* compute_spirv);
     void nga_destroy_pso(nga_PSO* pso);
-    nga_CommandBuffer* nga_begin_commands(nga_Device* device);
-    void nga_submit(const nga_CommandBufferSpan* commands, const nga_TimelinePoint* completion);
+    nga_CommandPool* nga_create_command_pool(nga_Device* device, uint32_t queue_index);
+    void nga_destroy_command_pool(nga_CommandPool* pool);
+    void nga_reset_command_pool(nga_CommandPool* pool);
+    nga_CommandBuffer* nga_begin_commands(nga_CommandPool* pool);
+    void nga_end_commands(nga_CommandBuffer* commands);
+    void nga_submit(nga_Device* device, const nga_SubmitDesc* desc, uint32_t queue_index);
     void nga_set_texture_descriptor_heap(nga_CommandBuffer* commands, const nga_GpuRange* heap);
     void nga_set_sampler_descriptor_heap(nga_CommandBuffer* commands, const nga_GpuRange* heap);
     void nga_copy_memory(nga_CommandBuffer* commands, const nga_GpuRange* source, const nga_GpuRange* destination);
@@ -660,7 +711,7 @@ extern "C"
     void nga_copy_texture_to_memory(nga_CommandBuffer* commands, nga_Texture* source, const nga_GpuRange* destination, const nga_TextureCopyDesc* copy);
     void nga_barrier(nga_CommandBuffer* commands, nga_Stage before, nga_Access before_access, nga_Stage after, nga_Access after_access);
     void nga_write_timestamp(nga_CommandBuffer* commands, uint64_t* gpu_destination, nga_Stage stage);
-    void nga_begin_render_pass(nga_CommandBuffer* commands, const nga_RenderingDesc* desc);
+    void nga_begin_render_pass(nga_CommandBuffer* commands, const nga_RenderingDesc* desc, nga_RenderingFlags flags);
     void nga_end_render_pass(nga_CommandBuffer* commands);
     void nga_set_viewport(nga_CommandBuffer* commands, const nga_Viewport* viewport);
     void nga_set_scissor(nga_CommandBuffer* commands, const nga_Scissor* scissor);
@@ -711,7 +762,7 @@ extern "C"
     void nga_reset_heap_allocator(nga_HeapAllocator* allocator);
     nga_TextureAllocator* nga_create_texture_allocator(nga_Device* device, const nga_TextureHeap* heap, uint32_t max_textures);
     void nga_destroy_texture_allocator(nga_TextureAllocator* allocator);
-    void nga_allocate_placed_texture(nga_TextureAllocator* allocator, const nga_TextureDesc* desc, nga_PlacedTexture* result);
+    void nga_allocate_placed_texture(nga_TextureAllocator* allocator, nga_CommandBuffer* commands, const nga_TextureDesc* desc, nga_PlacedTexture* result);
     void nga_free_placed_texture(nga_TextureAllocator* allocator, nga_PlacedTexture* texture);
     nga_DeleteQueue* nga_create_delete_queue(nga_TimelineSemaphore* timeline, uint32_t capacity);
     void nga_destroy_delete_queue(nga_DeleteQueue* queue);
@@ -719,6 +770,22 @@ extern "C"
     void nga_drain_delete_queue(nga_DeleteQueue* queue);
     void nga_defer_delete(nga_DeleteQueue* queue, uint64_t retire_value, nga_DeleteCallback callback, void* context);
     void nga_gpu_range(const nga_GpuCpuRange* range, nga_GpuRange* result);
+    nga_UploadQueue* nga_create_upload_queue(nga_Device* device, uint64_t capacity, uint32_t queue_index, uint32_t max_pending_batches);
+    void nga_destroy_upload_queue(nga_UploadQueue* queue);
+    void nga_upload_buffer(nga_UploadQueue* queue, const nga_GpuRange* destination, const nga_ByteSpan* source);
+    void nga_upload_texture_region(nga_UploadQueue* queue, nga_Texture* destination, const nga_ByteSpan* source, const nga_TextureCopyDesc* copy);
+    void nga_upload_texture(
+        nga_UploadQueue* queue,
+        nga_Texture* destination,
+        const nga_TextureDesc* description,
+        const nga_ByteSpan* source,
+        const nga_TextureCopyDesc* copy
+    );
+    void nga_upload_with_compute(nga_UploadQueue* queue, uint64_t byte_size, nga_UploadComputeCallback callback, void* context);
+    void nga_write_upload_timestamp(nga_UploadQueue* queue, uint64_t* gpu_destination);
+    void nga_flush_upload_queue(nga_UploadQueue* queue, nga_TimelinePoint* result);
+    void nga_wait_upload_queue(nga_UploadQueue* queue);
+    void nga_get_upload_queue_stats(nga_UploadQueue* queue, nga_UploadQueueStats* result);
 #ifdef __cplusplus
 }
 #endif

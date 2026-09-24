@@ -2,8 +2,9 @@
     "public_api_hashes": {
         "bump_allocator.hpp": "abd582d2a6521cffad5d6a32f46278b431a571d70b3a181539db81f683329fb1",
         "heap_allocator.hpp": "144fe70043c438141d3352a8803990a59d66612942ee0f2601c33e9071a49dab",
-        "texture_allocator.hpp": "2975c8a642d9fb40cbb5f194f73d96590cd8a661fc5633aca2f51873ac9ff55b",
-        "delete_queue.hpp": "4f7aa8506e504613481ee1c0f37f46e7ed34a8300cf73e83184bda78742d8eb9"
+        "texture_allocator.hpp": "c329f2099725c602222fc1a5969cd1558d6d310a66cd9b063e1d45793585ef56",
+        "delete_queue.hpp": "4f7aa8506e504613481ee1c0f37f46e7ed34a8300cf73e83184bda78742d8eb9",
+        "upload_queue.hpp": "6ca324f4c38e333f8b527dd87c73fc3a8450287f2f32c084af76b622cc391c8a"
     },
     "functions": [
         [
@@ -81,8 +82,8 @@
         [
             "PlacedTexture",
             "allocate_placed_texture",
-            "TextureAllocator* allocator, TextureDesc desc",
-            "allocator->allocate(*desc)"
+            "TextureAllocator* allocator, CommandBuffer* commands, TextureDesc desc",
+            "allocator->allocate(commands, *desc)"
         ],
         [
             "void",
@@ -125,10 +126,71 @@
             "gpu_range",
             "GpuCpuRange range",
             "gpu::gpu_range(*range)"
+        ],
+        [
+            "UploadQueue*",
+            "create_upload_queue",
+            "Device* device, uint64 capacity, uint32 queue_index, uint32 max_pending_batches",
+            "new gpu::UploadQueue(device, capacity, queue_index, max_pending_batches)"
+        ],
+        [
+            "void",
+            "destroy_upload_queue",
+            "UploadQueue* queue",
+            "delete queue"
+        ],
+        [
+            "void",
+            "upload_buffer",
+            "UploadQueue* queue, GpuRange destination, ByteSpan source",
+            "queue->upload_buffer(*destination, *source)"
+        ],
+        [
+            "void",
+            "upload_texture_region",
+            "UploadQueue* queue, Texture* destination, ByteSpan source, TextureCopyDesc copy",
+            "queue->upload_texture(destination, *source, *copy)"
+        ],
+        [
+            "void",
+            "upload_texture",
+            "UploadQueue* queue, Texture* destination, TextureDesc description, ByteSpan source, TextureCopyDesc copy",
+            "gpu::upload_texture(*queue, destination, *description, *source, *copy)"
+        ],
+        [
+            "void",
+            "upload_with_compute",
+            "UploadQueue* queue, uint64 byte_size, UploadComputeCallback callback, void* context",
+            "queue->upload_with_compute(byte_size, UploadComputeCallbackBridge{callback, context})"
+        ],
+        [
+            "void",
+            "write_upload_timestamp",
+            "UploadQueue* queue, uint64* gpu_destination",
+            "queue->write_timestamp(gpu_destination)"
+        ],
+        [
+            "TimelinePoint",
+            "flush_upload_queue",
+            "UploadQueue* queue",
+            "queue->flush()"
+        ],
+        [
+            "void",
+            "wait_upload_queue",
+            "UploadQueue* queue",
+            "queue->wait()"
+        ],
+        [
+            "UploadQueueStats",
+            "get_upload_queue_stats",
+            "UploadQueue* queue",
+            "queue->stats()"
         ]
     ],
     "support_header_hashes": {
         "include/NoGraphicsAPI/span.hpp": "58affe75ae37822473fa18f9cf193d52a23ee03a5f9911a4b380c1319b155d5e",
-        "include/NoGraphicsAPI/types.h": "1b1ccb720d116ae9f887ea0b844840e06eb27428d7c900b491f34455eaddd9bb"
+        "include/NoGraphicsAPI/types.h": "1b1ccb720d116ae9f887ea0b844840e06eb27428d7c900b491f34455eaddd9bb",
+        "utility/include/NoGraphicsAPIUtility/texture_upload.hpp": "6b618d48eff735838641bde037d9dc9b2c166de527509c9614538fef6476e7c1"
     }
 }

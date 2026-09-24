@@ -1,7 +1,7 @@
 @echo off
 setlocal
 pushd "%~dp0"
-cmake -S . -B build\windows_vs2022 -G "Visual Studio 17 2022" -A x64
+cmake -S . -B build\windows_vs2022 -G "Visual Studio 17 2022" -A x64 -DNOGRAPHICSAPI_BACKEND=d3d12
 if errorlevel 1 goto failed
 cmake --build build\windows_vs2022 --config Debug --parallel
 if errorlevel 1 goto failed

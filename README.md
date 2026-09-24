@@ -1,12 +1,12 @@
 # NoGraphicsAPI Beef
 
-Windows x64 Beef bindings for `submodules/NoGraphicsAPI`, with the same library/example workspace layout as `bgfx-beef`.
+Windows x64 D3D12 Beef bindings for `jazzbre/NoGraphicsAPI` (`d3d12-backend`), with the same library/example workspace layout as `bgfx-beef`.
 
-- `csrc/`: C ABI bridge covering the full public rendering API, format information, GPU ranges, and the bump, heap, texture allocator and delete queue utilities.
+- `csrc/`: C ABI bridge covering the full public rendering API, format information, GPU ranges, and the bump, heap, texture allocator, delete queue and upload queue utilities.
 - `src/`: Beef types and `NoGraphicsAPI.GPU` functions.
 - `example/`: Beef triangle renderer, Slang shader, and a small native window/file helper.
 
-Requires Beef, Visual Studio 2022 with C++ tools, CMake 3.24+, and Vulkan SDK 1.4.357+ with `slangc` and `spirv-val` on PATH. The GPU and driver must support NoGraphicsAPI's required Vulkan features.
+Requires Beef, Visual Studio 2022 with C++ tools and a Windows SDK, CMake 3.24+, and `slangc` with DXIL support on PATH. The GPU/driver must support Shader Model 6.6, resource binding tier 3, enhanced barriers, and independent front/back stencil references.
 
 From the repository directory:
 
@@ -17,17 +17,21 @@ beefbuild -config=Debug -platform=Win64
 build\Debug_Win64\example\example.exe
 ```
 
-The native script builds Debug and Release libraries and compiles/validates both shaders. Open `BeefSpace.toml` in Beef IDE to run the example, or use `beefbuild -run`. `--smoke-test` renders three frames and exits. Shader paths are set by CMake, so the example can run from any working directory within this checkout; rebuild native code after moving the checkout.
+The native script selects `-DNOGRAPHICSAPI_BACKEND=d3d12`, builds Debug and Release libraries, and compiles both shaders to DXIL with `NGA_D3D12=1`. Open `BeefSpace.toml` in Beef IDE to run the example, or use `beefbuild -run`. `--smoke-test` renders three frames and exits. Shader paths are set by CMake, so the example can run from any working directory within this checkout; rebuild native code after moving the checkout.
 
-To use the library, add `NoGraphicsAPI-beef` to your workspace and project dependencies. The project supplies native library paths and Windows/Vulkan link dependencies. Release, Paranoid and Test use the Release native libraries.
+To use the library, add `NoGraphicsAPI-beef` to your workspace and project dependencies. The project supplies native library paths and Windows/D3D12 link dependencies. Release, Paranoid and Test use the Release native libraries.
 
 Use `.()` to construct descriptors with upstream defaults; `default` deliberately produces zeroed storage. Structure fields and enum values retain upstream names; functions use PascalCase (`GPU.CreateDevice`, `GPU.Draw`). Spans contain a pointer and element count; `ByteSpan` and GPU ranges count bytes. `GpuCpuRange` and `HeapAllocation` expose byte pointers; cast these for typed application data.
 
-Resources have explicit ownership. Copies of heaps alias the same allocation. Keep span storage alive through each call, keep allocator storage alive until allocator destruction, and destroy resources only after GPU work finishes. Call `GPU.WaitIdle` before shutdown. Delete queue callbacks use a C function pointer and context pointer, which must remain valid until the callback runs; drain queues before destroying them. Windowed device calls stay on the window's message-pump thread.
+Resources have explicit ownership. Copies of heaps alias the same allocation. Keep span storage alive through each call, keep allocator storage alive until allocator destruction, and destroy resources only after GPU work finishes. Call `GPU.WaitIdle` before shutdown. Delete queue callbacks use a C function pointer and context pointer, which must remain valid until the callback runs; drain queues before destroying them. Windowed device creation/destruction, drawable queries, acquire and presentation stay on the window's message-pump thread. Externally synchronize each queue and command pool.
+
+Create command pools with `GPU.CreateCommandPool`, begin recording with `GPU.BeginCommands(pool)`, and call `GPU.EndCommands` before submission. `GPU.Acquire` takes the recording command buffer. `GPU.Submit` and `GPU.SubmitAndPresent` take `SubmitDesc`, including a required completion point and optional `TimelinePointSpan` GPU waits. Reset a pool only after its submitted buffers complete; destroy pools before the device. Texture creation and `GPU.AllocatePlacedTexture` also take a recording command buffer for initialization. `GPU.BeginRenderPass` takes `RenderingFlags` (`.none` for a normal pass).
+
+Shader fields retain upstream names such as `vertex_spirv`, but contain DXIL words on this branch. The generator follows upstream enum values; the removed `rgb32_uint` and `rgb32_float` formats are no longer exposed. Upload queues copy sources immediately; their compute callback receives borrowed staging pointers that are valid only during the callback. Wait for external submissions using an upload queue's completion semaphore before destroying that queue.
 
 The C++-only generic math, SIMD and callable helper templates are not separate graphics entry points and are not mirrored as Beef libraries. The shader and API declarations derive from NoGraphicsAPI under the included MIT license.
 
-To update NoGraphicsAPI and regenerate the bindings, run `update.cmd`. It fetches the latest commit of the submodule's configured remote branch (the remote default branch unless `submodule.submodules/NoGraphicsAPI.branch` is set), checks out that revision, and regenerates `csrc/nographicsapi.h`, `csrc/nographicsapi.cpp`, and `src/NoGraphicsAPI.bf`. Local submodule changes stop the update. Git uses the existing submodule URL and credentials.
+To update NoGraphicsAPI and regenerate the bindings, run `update.cmd`. On this branch it fetches the latest commit of `jazzbre/NoGraphicsAPI`'s `d3d12-backend` branch, checks out that revision, and regenerates `csrc/nographicsapi.h`, `csrc/nographicsapi.cpp`, and `src/NoGraphicsAPI.bf`. Local submodule changes stop the update. Git uses the existing submodule URL and credentials.
 
 Generation requires Python 3.6+ and clang-format (found on PATH or in Visual Studio 2022; override with `CLANG_FORMAT`). To regenerate from the current checkout without fetching, use `python tools/generate_bindings.py`. Add `--check` to check for stale bindings without writing files. Generated files should be changed through the generator.
 

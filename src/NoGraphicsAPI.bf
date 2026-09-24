@@ -5,6 +5,8 @@ namespace NoGraphicsAPI;
 [CRepr]
 public struct Device {}
 [CRepr]
+public struct CommandPool {}
+[CRepr]
 public struct Texture {}
 [CRepr]
 public struct RenderView {}
@@ -26,6 +28,8 @@ public struct HeapAllocator {}
 public struct TextureAllocator {}
 [CRepr]
 public struct DeleteQueue {}
+[CRepr]
+public struct UploadQueue {}
 public enum Error : uint8
 {
     none = 0,
@@ -66,15 +70,13 @@ public enum Format : uint8
     rgba16_uint = rg16_uint + 1,
     r32_uint = rgba16_uint + 1,
     rg32_uint = r32_uint + 1,
-    rgb32_uint = rg32_uint + 1,
-    rgba32_uint = rgb32_uint + 1,
+    rgba32_uint = rg32_uint + 1,
     r16_float = rgba32_uint + 1,
     rg16_float = r16_float + 1,
     rgba16_float = rg16_float + 1,
     r32_float = rgba16_float + 1,
     rg32_float = r32_float + 1,
-    rgb32_float = rg32_float + 1,
-    rgba32_float = rgb32_float + 1,
+    rgba32_float = rg32_float + 1,
     rgb10a2_unorm = rgba32_float + 1,
     rg11b10_float = rgb10a2_unorm + 1,
     d16_unorm = rg11b10_float + 1,
@@ -234,6 +236,12 @@ public enum Access : uint64
     host_read = 1 << 10,
     descriptor_read = 1 << 11,
 }
+public enum RenderingFlags : uint32
+{
+    none = 0,
+    suspending = 2,
+    resuming = 4,
+}
 [CRepr]
 public struct UInt32Span
 {
@@ -262,6 +270,12 @@ public struct CommandBufferSpan
 public struct ByteSpan
 {
     public uint8* data;
+    public uint size;
+}
+[CRepr]
+public struct TimelinePointSpan
+{
+    public TimelinePoint* data;
     public uint size;
 }
 [CRepr]
@@ -339,6 +353,16 @@ public struct TimelinePoint
     private static extern void Initialize(TimelinePoint* value);
 }
 [CRepr]
+public struct SubmitDesc
+{
+    public CommandBufferSpan commands;
+    public TimelinePointSpan waits;
+    public TimelinePoint completion;
+    public this() { this = default; Initialize(&this); }
+    [CallingConvention(.Cdecl), LinkName("nga_init_SubmitDesc")]
+    private static extern void Initialize(SubmitDesc* value);
+}
+[CRepr]
 public struct TextureFormatInfo
 {
     public uint32x2 block_extent;
@@ -353,6 +377,11 @@ public struct TextureFormatInfo
 public struct DeviceCaps
 {
     public char8* device_name;
+    public uint32 queue_count;
+    public uint32 general_queue_count;
+    public uint32 compute_queue_count;
+    public uint32 copy_queue_count;
+    public uint32x3 copy_texture_granularity;
     public uint64 max_push_data_size;
     public uint64 texture_heap_alignment;
     public uint64 texture_descriptor_size;
@@ -372,6 +401,9 @@ public struct DeviceDesc
     public void* window;
     public Format swapchain_format;
     public uint32 desired_swapchain_image_count;
+    public uint32 desired_queue_count;
+    public uint32 desired_compute_queue_count;
+    public uint32 desired_copy_queue_count;
     public uint32 timestamp_query_count;
     public this() { this = default; Initialize(&this); }
     [CallingConvention(.Cdecl), LinkName("nga_init_DeviceDesc")]
@@ -652,10 +684,26 @@ public struct PlacedTexture
     [CallingConvention(.Cdecl), LinkName("nga_init_PlacedTexture")]
     private static extern void Initialize(PlacedTexture* value);
 }
+[CRepr]
+public struct UploadQueueStats
+{
+    public uint64 capacity;
+    public uint64 bytes_in_use;
+    public uint64 peak_bytes;
+    public uint64 submissions;
+    public uint64 waits;
+    public uint32 pending_batches;
+    public uint32 pending_operations;
+    public this() { this = default; Initialize(&this); }
+    [CallingConvention(.Cdecl), LinkName("nga_init_UploadQueueStats")]
+    private static extern void Initialize(UploadQueueStats* value);
+}
 public static class GPU
 {
     [CallingConvention(.Cdecl)]
     public function void DeleteCallback(void* context);
+    [CallingConvention(.Cdecl)]
+    public function void UploadComputeCallback(CommandBuffer* commands, GpuCpuRange* staging, void* context);
     [CallingConvention(.Cdecl), LinkName("nga_get_texture_format_info")]
     private static extern void NativeGetTextureFormatInfo(Format format, TextureFormatInfo* result);
     public static TextureFormatInfo GetTextureFormatInfo(Format format)
@@ -733,20 +781,19 @@ public static class GPU
         NativeWaitIdle(device);
     }
     [CallingConvention(.Cdecl), LinkName("nga_acquire")]
-    private static extern void NativeAcquire(Device* device, SwapchainFrame* result);
-    public static SwapchainFrame Acquire(Device* device)
+    private static extern void NativeAcquire(CommandBuffer* commands, SwapchainFrame* result);
+    public static SwapchainFrame Acquire(CommandBuffer* commands)
     {
         SwapchainFrame result = default;
-        NativeAcquire(device, &result);
+        NativeAcquire(commands, &result);
         return result;
     }
     [CallingConvention(.Cdecl), LinkName("nga_submit_and_present")]
-    private static extern void NativeSubmitAndPresent(Device* device, CommandBufferSpan* commands, TimelinePoint* completion);
-    public static void SubmitAndPresent(Device* device, CommandBufferSpan commands, TimelinePoint completion)
+    private static extern void NativeSubmitAndPresent(Device* device, SubmitDesc* desc);
+    public static void SubmitAndPresent(Device* device, SubmitDesc desc)
     {
-        var commands;
-        var completion;
-        NativeSubmitAndPresent(device, &commands, &completion);
+        var desc;
+        NativeSubmitAndPresent(device, &desc);
     }
     [CallingConvention(.Cdecl), LinkName("nga_create_gpu_heap")]
     private static extern void NativeCreateGpuHeap(Device* device, uint64 byte_count, MemoryType memory, GpuHeap* result);
@@ -788,12 +835,12 @@ public static class GPU
         return result;
     }
     [CallingConvention(.Cdecl), LinkName("nga_create_texture")]
-    private static extern Texture* NativeCreateTexture(Device* device, TextureDesc* desc, TextureHeap* heap, uint64 offset);
-    public static Texture* CreateTexture(Device* device, TextureDesc desc, TextureHeap heap, uint64 offset)
+    private static extern Texture* NativeCreateTexture(CommandBuffer* commands, TextureDesc* desc, TextureHeap* heap, uint64 offset);
+    public static Texture* CreateTexture(CommandBuffer* commands, TextureDesc desc, TextureHeap heap, uint64 offset)
     {
         var desc;
         var heap;
-        return NativeCreateTexture(device, &desc, &heap, offset);
+        return NativeCreateTexture(commands, &desc, &heap, offset);
     }
     [CallingConvention(.Cdecl), LinkName("nga_destroy_texture")]
     private static extern void NativeDestroyTexture(Texture* texture);
@@ -855,19 +902,42 @@ public static class GPU
     {
         NativeDestroyPso(pso);
     }
-    [CallingConvention(.Cdecl), LinkName("nga_begin_commands")]
-    private static extern CommandBuffer* NativeBeginCommands(Device* device);
-    public static CommandBuffer* BeginCommands(Device* device)
+    [CallingConvention(.Cdecl), LinkName("nga_create_command_pool")]
+    private static extern CommandPool* NativeCreateCommandPool(Device* device, uint32 queue_index);
+    public static CommandPool* CreateCommandPool(Device* device, uint32 queue_index)
     {
-        return NativeBeginCommands(device);
+        return NativeCreateCommandPool(device, queue_index);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_destroy_command_pool")]
+    private static extern void NativeDestroyCommandPool(CommandPool* pool);
+    public static void DestroyCommandPool(CommandPool* pool)
+    {
+        NativeDestroyCommandPool(pool);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_reset_command_pool")]
+    private static extern void NativeResetCommandPool(CommandPool* pool);
+    public static void ResetCommandPool(CommandPool* pool)
+    {
+        NativeResetCommandPool(pool);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_begin_commands")]
+    private static extern CommandBuffer* NativeBeginCommands(CommandPool* pool);
+    public static CommandBuffer* BeginCommands(CommandPool* pool)
+    {
+        return NativeBeginCommands(pool);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_end_commands")]
+    private static extern void NativeEndCommands(CommandBuffer* commands);
+    public static void EndCommands(CommandBuffer* commands)
+    {
+        NativeEndCommands(commands);
     }
     [CallingConvention(.Cdecl), LinkName("nga_submit")]
-    private static extern void NativeSubmit(CommandBufferSpan* commands, TimelinePoint* completion);
-    public static void Submit(CommandBufferSpan commands, TimelinePoint completion)
+    private static extern void NativeSubmit(Device* device, SubmitDesc* desc, uint32 queue_index);
+    public static void Submit(Device* device, SubmitDesc desc, uint32 queue_index)
     {
-        var commands;
-        var completion;
-        NativeSubmit(&commands, &completion);
+        var desc;
+        NativeSubmit(device, &desc, queue_index);
     }
     [CallingConvention(.Cdecl), LinkName("nga_set_texture_descriptor_heap")]
     private static extern void NativeSetTextureDescriptorHeap(CommandBuffer* commands, GpuRange* heap);
@@ -920,11 +990,11 @@ public static class GPU
         NativeWriteTimestamp(commands, gpu_destination, stage);
     }
     [CallingConvention(.Cdecl), LinkName("nga_begin_render_pass")]
-    private static extern void NativeBeginRenderPass(CommandBuffer* commands, RenderingDesc* desc);
-    public static void BeginRenderPass(CommandBuffer* commands, RenderingDesc desc)
+    private static extern void NativeBeginRenderPass(CommandBuffer* commands, RenderingDesc* desc, RenderingFlags flags);
+    public static void BeginRenderPass(CommandBuffer* commands, RenderingDesc desc, RenderingFlags flags)
     {
         var desc;
-        NativeBeginRenderPass(commands, &desc);
+        NativeBeginRenderPass(commands, &desc, flags);
     }
     [CallingConvention(.Cdecl), LinkName("nga_end_render_pass")]
     private static extern void NativeEndRenderPass(CommandBuffer* commands);
@@ -1106,12 +1176,12 @@ public static class GPU
         NativeDestroyTextureAllocator(allocator);
     }
     [CallingConvention(.Cdecl), LinkName("nga_allocate_placed_texture")]
-    private static extern void NativeAllocatePlacedTexture(TextureAllocator* allocator, TextureDesc* desc, PlacedTexture* result);
-    public static PlacedTexture AllocatePlacedTexture(TextureAllocator* allocator, TextureDesc desc)
+    private static extern void NativeAllocatePlacedTexture(TextureAllocator* allocator, CommandBuffer* commands, TextureDesc* desc, PlacedTexture* result);
+    public static PlacedTexture AllocatePlacedTexture(TextureAllocator* allocator, CommandBuffer* commands, TextureDesc desc)
     {
         var desc;
         PlacedTexture result = default;
-        NativeAllocatePlacedTexture(allocator, &desc, &result);
+        NativeAllocatePlacedTexture(allocator, commands, &desc, &result);
         return result;
     }
     [CallingConvention(.Cdecl), LinkName("nga_free_placed_texture")]
@@ -1157,6 +1227,77 @@ public static class GPU
         var range;
         GpuRange result = default;
         NativeGpuRange(&range, &result);
+        return result;
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_create_upload_queue")]
+    private static extern UploadQueue* NativeCreateUploadQueue(Device* device, uint64 capacity, uint32 queue_index, uint32 max_pending_batches);
+    public static UploadQueue* CreateUploadQueue(Device* device, uint64 capacity, uint32 queue_index, uint32 max_pending_batches)
+    {
+        return NativeCreateUploadQueue(device, capacity, queue_index, max_pending_batches);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_destroy_upload_queue")]
+    private static extern void NativeDestroyUploadQueue(UploadQueue* queue);
+    public static void DestroyUploadQueue(UploadQueue* queue)
+    {
+        NativeDestroyUploadQueue(queue);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_upload_buffer")]
+    private static extern void NativeUploadBuffer(UploadQueue* queue, GpuRange* destination, ByteSpan* source);
+    public static void UploadBuffer(UploadQueue* queue, GpuRange destination, ByteSpan source)
+    {
+        var destination;
+        var source;
+        NativeUploadBuffer(queue, &destination, &source);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_upload_texture_region")]
+    private static extern void NativeUploadTextureRegion(UploadQueue* queue, Texture* destination, ByteSpan* source, TextureCopyDesc* copy);
+    public static void UploadTextureRegion(UploadQueue* queue, Texture* destination, ByteSpan source, TextureCopyDesc copy)
+    {
+        var source;
+        var copy;
+        NativeUploadTextureRegion(queue, destination, &source, &copy);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_upload_texture")]
+    private static extern void NativeUploadTexture(UploadQueue* queue, Texture* destination, TextureDesc* description, ByteSpan* source, TextureCopyDesc* copy);
+    public static void UploadTexture(UploadQueue* queue, Texture* destination, TextureDesc description, ByteSpan source, TextureCopyDesc copy)
+    {
+        var description;
+        var source;
+        var copy;
+        NativeUploadTexture(queue, destination, &description, &source, &copy);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_upload_with_compute")]
+    private static extern void NativeUploadWithCompute(UploadQueue* queue, uint64 byte_size, UploadComputeCallback callback, void* context);
+    public static void UploadWithCompute(UploadQueue* queue, uint64 byte_size, UploadComputeCallback callback, void* context)
+    {
+        NativeUploadWithCompute(queue, byte_size, callback, context);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_write_upload_timestamp")]
+    private static extern void NativeWriteUploadTimestamp(UploadQueue* queue, uint64* gpu_destination);
+    public static void WriteUploadTimestamp(UploadQueue* queue, uint64* gpu_destination)
+    {
+        NativeWriteUploadTimestamp(queue, gpu_destination);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_flush_upload_queue")]
+    private static extern void NativeFlushUploadQueue(UploadQueue* queue, TimelinePoint* result);
+    public static TimelinePoint FlushUploadQueue(UploadQueue* queue)
+    {
+        TimelinePoint result = default;
+        NativeFlushUploadQueue(queue, &result);
+        return result;
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_wait_upload_queue")]
+    private static extern void NativeWaitUploadQueue(UploadQueue* queue);
+    public static void WaitUploadQueue(UploadQueue* queue)
+    {
+        NativeWaitUploadQueue(queue);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_get_upload_queue_stats")]
+    private static extern void NativeGetUploadQueueStats(UploadQueue* queue, UploadQueueStats* result);
+    public static UploadQueueStats GetUploadQueueStats(UploadQueue* queue)
+    {
+        UploadQueueStats result = default;
+        NativeGetUploadQueueStats(queue, &result);
         return result;
     }
     public static GpuRange GpuRange(GpuHeap heap) { return GpuRange(heap.range); }

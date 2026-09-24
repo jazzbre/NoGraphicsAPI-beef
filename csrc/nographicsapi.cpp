@@ -32,6 +32,10 @@ void nga_init_TimelinePoint(nga_TimelinePoint* value)
 {
     *value = {};
 }
+void nga_init_SubmitDesc(nga_SubmitDesc* value)
+{
+    *value = {};
+}
 void nga_init_TextureFormatInfo(nga_TextureFormatInfo* value)
 {
     *value = {};
@@ -140,6 +144,19 @@ void nga_init_PlacedTexture(nga_PlacedTexture* value)
 {
     *value = {};
 }
+void nga_init_UploadQueueStats(nga_UploadQueueStats* value)
+{
+    *value = {};
+}
+struct UploadComputeCallbackBridge
+{
+    nga_UploadComputeCallback callback;
+    void* context;
+    void operator()(gpu::CommandBuffer* commands, gpu::GpuCpuRange<gpu::byte> staging) noexcept
+    {
+        callback(commands, &staging, context);
+    }
+};
 struct DeferredCallback
 {
     nga_DeleteCallback callback;
@@ -193,13 +210,13 @@ void nga_wait_idle(nga_Device* device)
 {
     gpu::wait_idle(device);
 }
-void nga_acquire(nga_Device* device, nga_SwapchainFrame* result)
+void nga_acquire(nga_CommandBuffer* commands, nga_SwapchainFrame* result)
 {
-    *result = gpu::acquire(device);
+    *result = gpu::acquire(commands);
 }
-void nga_submit_and_present(nga_Device* device, const nga_CommandBufferSpan* commands, const nga_TimelinePoint* completion)
+void nga_submit_and_present(nga_Device* device, const nga_SubmitDesc* desc)
 {
-    gpu::submit_and_present(device, *commands, *completion);
+    gpu::submit_and_present(device, *desc);
 }
 void nga_create_gpu_heap(nga_Device* device, uint64_t byte_count, nga_MemoryType memory, nga_GpuHeap* result)
 {
@@ -221,9 +238,9 @@ void nga_get_texture_size_align(nga_Device* device, const nga_TextureDesc* desc,
 {
     *result = gpu::get_texture_size_align(device, *desc);
 }
-nga_Texture* nga_create_texture(nga_Device* device, const nga_TextureDesc* desc, const nga_TextureHeap* heap, uint64_t offset)
+nga_Texture* nga_create_texture(nga_CommandBuffer* commands, const nga_TextureDesc* desc, const nga_TextureHeap* heap, uint64_t offset)
 {
-    return gpu::create_texture(device, *desc, *heap, offset);
+    return gpu::create_texture(commands, *desc, *heap, offset);
 }
 void nga_destroy_texture(nga_Texture* texture)
 {
@@ -267,13 +284,29 @@ void nga_destroy_pso(nga_PSO* pso)
 {
     gpu::destroy_pso(pso);
 }
-nga_CommandBuffer* nga_begin_commands(nga_Device* device)
+nga_CommandPool* nga_create_command_pool(nga_Device* device, uint32_t queue_index)
 {
-    return gpu::begin_commands(device);
+    return gpu::create_command_pool(device, queue_index);
 }
-void nga_submit(const nga_CommandBufferSpan* commands, const nga_TimelinePoint* completion)
+void nga_destroy_command_pool(nga_CommandPool* pool)
 {
-    gpu::submit(*commands, *completion);
+    gpu::destroy_command_pool(pool);
+}
+void nga_reset_command_pool(nga_CommandPool* pool)
+{
+    gpu::reset_command_pool(pool);
+}
+nga_CommandBuffer* nga_begin_commands(nga_CommandPool* pool)
+{
+    return gpu::begin_commands(pool);
+}
+void nga_end_commands(nga_CommandBuffer* commands)
+{
+    gpu::end_commands(commands);
+}
+void nga_submit(nga_Device* device, const nga_SubmitDesc* desc, uint32_t queue_index)
+{
+    gpu::submit(device, *desc, queue_index);
 }
 void nga_set_texture_descriptor_heap(nga_CommandBuffer* commands, const nga_GpuRange* heap)
 {
@@ -303,9 +336,9 @@ void nga_write_timestamp(nga_CommandBuffer* commands, uint64_t* gpu_destination,
 {
     gpu::write_timestamp(commands, gpu_destination, stage);
 }
-void nga_begin_render_pass(nga_CommandBuffer* commands, const nga_RenderingDesc* desc)
+void nga_begin_render_pass(nga_CommandBuffer* commands, const nga_RenderingDesc* desc, nga_RenderingFlags flags)
 {
-    gpu::begin_render_pass(commands, *desc);
+    gpu::begin_render_pass(commands, *desc, flags);
 }
 void nga_end_render_pass(nga_CommandBuffer* commands)
 {
@@ -432,9 +465,9 @@ void nga_destroy_texture_allocator(nga_TextureAllocator* allocator)
 {
     delete allocator;
 }
-void nga_allocate_placed_texture(nga_TextureAllocator* allocator, const nga_TextureDesc* desc, nga_PlacedTexture* result)
+void nga_allocate_placed_texture(nga_TextureAllocator* allocator, nga_CommandBuffer* commands, const nga_TextureDesc* desc, nga_PlacedTexture* result)
 {
-    *result = allocator->allocate(*desc);
+    *result = allocator->allocate(commands, *desc);
 }
 void nga_free_placed_texture(nga_TextureAllocator* allocator, nga_PlacedTexture* texture)
 {
@@ -463,4 +496,50 @@ void nga_defer_delete(nga_DeleteQueue* queue, uint64_t retire_value, nga_DeleteC
 void nga_gpu_range(const nga_GpuCpuRange* range, nga_GpuRange* result)
 {
     *result = gpu::gpu_range(*range);
+}
+nga_UploadQueue* nga_create_upload_queue(nga_Device* device, uint64_t capacity, uint32_t queue_index, uint32_t max_pending_batches)
+{
+    return new gpu::UploadQueue(device, capacity, queue_index, max_pending_batches);
+}
+void nga_destroy_upload_queue(nga_UploadQueue* queue)
+{
+    delete queue;
+}
+void nga_upload_buffer(nga_UploadQueue* queue, const nga_GpuRange* destination, const nga_ByteSpan* source)
+{
+    queue->upload_buffer(*destination, *source);
+}
+void nga_upload_texture_region(nga_UploadQueue* queue, nga_Texture* destination, const nga_ByteSpan* source, const nga_TextureCopyDesc* copy)
+{
+    queue->upload_texture(destination, *source, *copy);
+}
+void nga_upload_texture(
+    nga_UploadQueue* queue,
+    nga_Texture* destination,
+    const nga_TextureDesc* description,
+    const nga_ByteSpan* source,
+    const nga_TextureCopyDesc* copy
+)
+{
+    gpu::upload_texture(*queue, destination, *description, *source, *copy);
+}
+void nga_upload_with_compute(nga_UploadQueue* queue, uint64_t byte_size, nga_UploadComputeCallback callback, void* context)
+{
+    queue->upload_with_compute(byte_size, UploadComputeCallbackBridge{ callback, context });
+}
+void nga_write_upload_timestamp(nga_UploadQueue* queue, uint64_t* gpu_destination)
+{
+    queue->write_timestamp(gpu_destination);
+}
+void nga_flush_upload_queue(nga_UploadQueue* queue, nga_TimelinePoint* result)
+{
+    *result = queue->flush();
+}
+void nga_wait_upload_queue(nga_UploadQueue* queue)
+{
+    queue->wait();
+}
+void nga_get_upload_queue_stats(nga_UploadQueue* queue, nga_UploadQueueStats* result)
+{
+    *result = queue->stats();
 }

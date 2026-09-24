@@ -17,9 +17,11 @@ SPAN_ELEMENTS = {
     'ColorAttachmentSpan': 'ColorAttachment',
     'CommandBufferSpan': 'CommandBuffer*',
     'ByteSpan': 'byte',
+    'TimelinePointSpan': 'TimelinePoint',
 }
 TYPE_REPLACEMENTS = {
     'Span<const uint32>': 'UInt32Span',
+    'Span<const TimelinePoint>': 'TimelinePointSpan',
     'Span<const ColorTargetDesc>': 'ColorTargetSpan',
     'Span<const ColorAttachment>': 'ColorAttachmentSpan',
     'Span<CommandBuffer*const>': 'CommandBufferSpan',
@@ -192,6 +194,7 @@ def load_api(submodule_directory, utility_configuration):
         'TextureUsageoperator|(TextureUsagelhs,TextureUsagerhs)',
         'Stageoperator|(Stagelhs,Stagerhs)',
         'Accessoperator|(Accesslhs,Accessrhs)',
+        'RenderingFlagsoperator|(RenderingFlagslhs,RenderingFlagsrhs)',
         'template<typenameT>GpuRangegpu_range(GpuCpuRange<T>range)',
         'GpuRangegpu_range(constGpuHeap&heap)',
     }
@@ -204,10 +207,10 @@ def load_api(submodule_directory, utility_configuration):
         if actual_hash != expected_hash:
             raise ValueError(header_name + ': utility public API changed; review tools/utility_bindings.json adapters before regenerating')
         for declaration in split_declarations(header_source):
-            structure = re.fullmatch(r'(?:template\s*<typename T>\s*)?struct\s+(HeapAllocation|PlacedTexture)\s*\{(.*)\}\s*;', declaration, flags=re.S)
+            structure = re.fullmatch(r'(?:template\s*<typename T>\s*)?struct\s+(HeapAllocation|PlacedTexture|UploadQueueStats)\s*\{(.*)\}\s*;', declaration, flags=re.S)
             if structure:
                 structures[structure.group(1)] = parse_fields(re.sub(r'\bT\b', 'byte', structure.group(2)))
-    opaque_types.extend(['BumpAllocator', 'HeapAllocator', 'TextureAllocator', 'DeleteQueue'])
+    opaque_types.extend(['BumpAllocator', 'HeapAllocator', 'TextureAllocator', 'DeleteQueue', 'UploadQueue'])
     functions.extend(tuple(function) for function in utility_configuration['functions'])
     function_names = [function[1] for function in functions]
     if len(function_names) != len(set(function_names)):
@@ -220,7 +223,7 @@ def generate_bindings(submodule_directory, utility_configuration):
     structure_fields = dict(structures)
     for span_name, element_type in SPAN_ELEMENTS.items():
         structure_fields[span_name] = [(element_type + '*', 'data'), ('size_t', 'size')]
-    known_types = set(opaque_types) | set(structure_fields) | {name for name, _, _ in enumerations} | {'DeleteCallback'}
+    known_types = set(opaque_types) | set(structure_fields) | {name for name, _, _ in enumerations} | {'DeleteCallback', 'UploadComputeCallback'}
 
     def validate_type(type_name):
         remaining_type = re.sub(r'\bconst\b|[*&\s]', '', type_name)
@@ -245,6 +248,7 @@ def generate_bindings(submodule_directory, utility_configuration):
     header = ['#pragma once', '#include <stdint.h>', '#include <stddef.h>', '#include <stdbool.h>',
               'typedef void (*nga_DeleteCallback)(void* context);', '#ifdef __cplusplus', '#include <NoGraphicsAPI/NoGraphicsAPI.hpp>']
     header.extend('#include <NoGraphicsAPIUtility/' + name + '>' for name in utility_configuration['public_api_hashes'])
+    header.append('#include <NoGraphicsAPIUtility/texture_upload.hpp>')
     for type_name in opaque_types + [name for name, _, _ in enumerations] + list(structures):
         native_type = type_name + '<gpu::byte>' if type_name in ('GpuCpuRange', 'HeapAllocation') else type_name
         header.append('using nga_{} = gpu::{};'.format(type_name, native_type))
@@ -265,7 +269,7 @@ def generate_bindings(submodule_directory, utility_configuration):
         for field_type, field_name in structure_fields[structure_name]:
             header.append('    {} {};'.format(c_type(field_type), field_name))
         header.append('};')
-    header.extend(['#endif', '#ifdef __cplusplus', 'extern "C" {', '#endif'])
+    header.extend(['#endif', 'typedef void (*nga_UploadComputeCallback)(nga_CommandBuffer* commands, const nga_GpuCpuRange* staging, void* context);', '#ifdef __cplusplus', 'extern "C" {', '#endif'])
     implementation = ['#include "nographicsapi.h"']
     beef = ['using System;', 'namespace NoGraphicsAPI;', '']
     for type_name in opaque_types:
@@ -290,6 +294,8 @@ def generate_bindings(submodule_directory, utility_configuration):
                          '    private static extern void Initialize(' + structure_name + '* value);'])
         beef.append('}')
     beef.extend(['public static class GPU', '{', '    [CallingConvention(.Cdecl)]', '    public function void DeleteCallback(void* context);'])
+    beef.extend(['    [CallingConvention(.Cdecl)]', '    public function void UploadComputeCallback(CommandBuffer* commands, GpuCpuRange* staging, void* context);'])
+    implementation.append('struct UploadComputeCallbackBridge { nga_UploadComputeCallback callback; void* context; void operator()(gpu::CommandBuffer* commands, gpu::GpuCpuRange<gpu::byte> staging) noexcept { callback(commands, &staging, context); } };')
     implementation.append('struct DeferredCallback { nga_DeleteCallback callback; void* context; void operator()() noexcept { callback(context); } };')
     for return_type, function_name, parameters, utility_body in functions:
         return_type = plain_type(normalize_type(return_type))

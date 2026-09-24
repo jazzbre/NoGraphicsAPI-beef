@@ -27,8 +27,8 @@ class Program
         Console.WriteLine("Using {}", StringView(GPU.GetDeviceCaps(device).device_name));
         UInt32Span vertexShader = default;
         UInt32Span fragmentShader = default;
-        nga_example_read_shader("triangle.vertex.spv", &vertexShader);
-        nga_example_read_shader("triangle.fragment.spv", &fragmentShader);
+        nga_example_read_shader("triangle.vertex.dxil", &vertexShader);
+        nga_example_read_shader("triangle.fragment.dxil", &fragmentShader);
         defer nga_example_free_shader(vertexShader.data);
         defer nga_example_free_shader(fragmentShader.data);
         if (vertexShader.data == null || fragmentShader.data == null) return 1;
@@ -45,25 +45,40 @@ class Program
         completion.semaphore = GPU.CreateTimelineSemaphore(device, 0);
         if (completion.semaphore == null) return 1;
         defer GPU.DestroyTimelineSemaphore(completion.semaphore);
+        CommandPool*[2] commandPools = default;
+        commandPools[0] = GPU.CreateCommandPool(device, 0);
+        if (commandPools[0] == null) return 1;
+        defer GPU.DestroyCommandPool(commandPools[0]);
+        commandPools[1] = GPU.CreateCommandPool(device, 0);
+        if (commandPools[1] == null) return 1;
+        defer GPU.DestroyCommandPool(commandPools[1]);
         defer GPU.WaitIdle(device);
         bool smokeTest = arguments.Count > 0 && arguments[0] == "--smoke-test";
         uint32 renderedFrames = 0;
         while (nga_example_pump(window))
         {
-            SwapchainFrame frame = GPU.Acquire(device);
+            if (completion.value >= 2)
+                GPU.WaitTimeline(.() { semaphore = completion.semaphore, value = completion.value - 1 });
+            CommandPool* commandPool = commandPools[(int)(completion.value % 2)];
+            GPU.ResetCommandPool(commandPool);
+            CommandBuffer* commands = GPU.BeginCommands(commandPool);
+            SwapchainFrame frame = GPU.Acquire(commands);
             if (frame.render_view == null) continue;
-            CommandBuffer* commands = GPU.BeginCommands(device);
             ColorAttachment attachment = .();
             attachment.render_view = frame.render_view;
             attachment.load = .clear;
             RenderingDesc rendering = .();
             rendering.colors = .() { data = &attachment, size = 1 };
-            GPU.BeginRenderPass(commands, rendering);
+            GPU.BeginRenderPass(commands, rendering, .none);
             GPU.BindPso(commands, pipeline);
             GPU.Draw(commands, default, 3, 1, 0, 0);
             GPU.EndRenderPass(commands);
+            GPU.EndCommands(commands);
             completion.value++;
-            GPU.SubmitAndPresent(device, .() { data = &commands, size = 1 }, completion);
+            SubmitDesc submission = .();
+            submission.commands = .() { data = &commands, size = 1 };
+            submission.completion = completion;
+            GPU.SubmitAndPresent(device, submission);
             if (smokeTest && ++renderedFrames == 3) break;
         }
         return 0;

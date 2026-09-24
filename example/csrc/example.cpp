@@ -5,7 +5,7 @@ extern "C"
 {
     void* nga_example_open()
     {
-        return open_example_window("NoGraphicsAPI Beef triangle", 800, 600);
+        return open_example_window("NoGraphicsAPI Beef D3D12 triangle", 800, 600);
     }
     bool nga_example_pump(void* window)
     {
@@ -19,7 +19,7 @@ extern "C"
     {
         char shader_path[1024];
         snprintf(shader_path, sizeof(shader_path), "%s/%s", NOGRAPHICSAPI_SHADER_DIRECTORY, path);
-        *result = read_spirv(shader_path);
+        *result = read_shader_binary(shader_path);
     }
     void nga_example_free_shader(void* data)
     {
