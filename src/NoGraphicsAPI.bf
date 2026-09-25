@@ -374,6 +374,25 @@ public struct TextureFormatInfo
     private static extern void Initialize(TextureFormatInfo* value);
 }
 [CRepr]
+public struct DeviceMemoryStats
+{
+    public uint64 texture_bytes;
+    public uint64 buffer_bytes;
+    public uint64 upload_bytes;
+    public uint64 readback_bytes;
+    public uint64 scratch_bytes;
+    public uint64 local_usage;
+    public uint64 local_budget;
+    public uint64 nonlocal_usage;
+    public uint64 nonlocal_budget;
+    public bool allocations_available;
+    public bool local_available;
+    public bool nonlocal_available;
+    public this() { this = default; Initialize(&this); }
+    [CallingConvention(.Cdecl), LinkName("nga_init_DeviceMemoryStats")]
+    private static extern void Initialize(DeviceMemoryStats* value);
+}
+[CRepr]
 public struct DeviceCaps
 {
     public char8* device_name;
@@ -733,6 +752,14 @@ public static class GPU
     {
         DeviceCaps result = default;
         NativeGetDeviceCaps(device, &result);
+        return result;
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_get_device_memory_stats")]
+    private static extern void NativeGetDeviceMemoryStats(Device* device, DeviceMemoryStats* result);
+    public static DeviceMemoryStats GetDeviceMemoryStats(Device* device)
+    {
+        DeviceMemoryStats result = default;
+        NativeGetDeviceMemoryStats(device, &result);
         return result;
     }
     [CallingConvention(.Cdecl), LinkName("nga_supports_texture_format")]

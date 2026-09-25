@@ -56,6 +56,7 @@ using nga_TextureHeap = gpu::TextureHeap;
 using nga_TimelinePoint = gpu::TimelinePoint;
 using nga_SubmitDesc = gpu::SubmitDesc;
 using nga_TextureFormatInfo = gpu::TextureFormatInfo;
+using nga_DeviceMemoryStats = gpu::DeviceMemoryStats;
 using nga_DeviceCaps = gpu::DeviceCaps;
 using nga_DeviceDesc = gpu::DeviceDesc;
 using nga_DeviceInit = gpu::DeviceInit;
@@ -286,6 +287,7 @@ typedef struct nga_TextureHeap nga_TextureHeap;
 typedef struct nga_TimelinePoint nga_TimelinePoint;
 typedef struct nga_SubmitDesc nga_SubmitDesc;
 typedef struct nga_TextureFormatInfo nga_TextureFormatInfo;
+typedef struct nga_DeviceMemoryStats nga_DeviceMemoryStats;
 typedef struct nga_DeviceCaps nga_DeviceCaps;
 typedef struct nga_DeviceDesc nga_DeviceDesc;
 typedef struct nga_DeviceInit nga_DeviceInit;
@@ -403,6 +405,21 @@ struct nga_TextureFormatInfo
     uint32_t bytes_per_block;
     bool depth;
     bool stencil;
+};
+struct nga_DeviceMemoryStats
+{
+    uint64_t texture_bytes;
+    uint64_t buffer_bytes;
+    uint64_t upload_bytes;
+    uint64_t readback_bytes;
+    uint64_t scratch_bytes;
+    uint64_t local_usage;
+    uint64_t local_budget;
+    uint64_t nonlocal_usage;
+    uint64_t nonlocal_budget;
+    bool allocations_available;
+    bool local_available;
+    bool nonlocal_available;
 };
 struct nga_DeviceCaps
 {
@@ -637,6 +654,7 @@ extern "C"
     void nga_init_TimelinePoint(nga_TimelinePoint* value);
     void nga_init_SubmitDesc(nga_SubmitDesc* value);
     void nga_init_TextureFormatInfo(nga_TextureFormatInfo* value);
+    void nga_init_DeviceMemoryStats(nga_DeviceMemoryStats* value);
     void nga_init_DeviceCaps(nga_DeviceCaps* value);
     void nga_init_DeviceDesc(nga_DeviceDesc* value);
     void nga_init_DeviceInit(nga_DeviceInit* value);
@@ -668,6 +686,7 @@ extern "C"
     void nga_create_device(const nga_DeviceDesc* desc, nga_DeviceInit* result);
     void nga_destroy_device(nga_Device* device);
     void nga_get_device_caps(const nga_Device* device, nga_DeviceCaps* result);
+    void nga_get_device_memory_stats(const nga_Device* device, nga_DeviceMemoryStats* result);
     bool nga_supports_texture_format(const nga_Device* device, nga_Format format, nga_TextureUsage usage);
     void nga_get_drawable_extent(nga_Device* device, nga_uint32x2* result);
     nga_TimelineSemaphore* nga_create_timeline_semaphore(nga_Device* device, uint64_t initial_value);

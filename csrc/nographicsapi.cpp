@@ -40,6 +40,10 @@ void nga_init_TextureFormatInfo(nga_TextureFormatInfo* value)
 {
     *value = {};
 }
+void nga_init_DeviceMemoryStats(nga_DeviceMemoryStats* value)
+{
+    *value = {};
+}
 void nga_init_DeviceCaps(nga_DeviceCaps* value)
 {
     *value = {};
@@ -181,6 +185,10 @@ void nga_destroy_device(nga_Device* device)
 void nga_get_device_caps(const nga_Device* device, nga_DeviceCaps* result)
 {
     *result = gpu::get_device_caps(device);
+}
+void nga_get_device_memory_stats(const nga_Device* device, nga_DeviceMemoryStats* result)
+{
+    *result = gpu::get_device_memory_stats(device);
 }
 bool nga_supports_texture_format(const nga_Device* device, nga_Format format, nga_TextureUsage usage)
 {
