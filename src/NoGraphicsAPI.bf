@@ -393,6 +393,34 @@ public struct DeviceMemoryStats
     private static extern void Initialize(DeviceMemoryStats* value);
 }
 [CRepr]
+public struct DeviceDiagnostics
+{
+    public double timeline_wait_ms;
+    public double idle_wait_ms;
+    public double swapchain_resize_ms;
+    public double queue_submit_ms;
+    public double present_ms;
+    public uint64 timeline_wait_count;
+    public uint64 idle_wait_count;
+    public uint64 swapchain_resize_count;
+    public uint64 queue_submit_count;
+    public uint64 present_count;
+    public uint64 validation_message_count;
+    public uint64 last_wait_target;
+    public uint64 last_wait_completed;
+    public uint64 last_submit_target;
+    public uint64 last_submit_completed;
+    public uint32 swapchain_width;
+    public uint32 swapchain_height;
+    public uint32 swapchain_image_count;
+    public uint32 swapchain_image_index;
+    public int32 present_result;
+    public bool available;
+    public this() { this = default; Initialize(&this); }
+    [CallingConvention(.Cdecl), LinkName("nga_init_DeviceDiagnostics")]
+    private static extern void Initialize(DeviceDiagnostics* value);
+}
+[CRepr]
 public struct DeviceCaps
 {
     public char8* device_name;
@@ -760,6 +788,20 @@ public static class GPU
     {
         DeviceMemoryStats result = default;
         NativeGetDeviceMemoryStats(device, &result);
+        return result;
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_set_device_diagnostics_enabled")]
+    private static extern void NativeSetDeviceDiagnosticsEnabled(Device* device, bool enabled);
+    public static void SetDeviceDiagnosticsEnabled(Device* device, bool enabled)
+    {
+        NativeSetDeviceDiagnosticsEnabled(device, enabled);
+    }
+    [CallingConvention(.Cdecl), LinkName("nga_get_device_diagnostics")]
+    private static extern void NativeGetDeviceDiagnostics(Device* device, DeviceDiagnostics* result);
+    public static DeviceDiagnostics GetDeviceDiagnostics(Device* device)
+    {
+        DeviceDiagnostics result = default;
+        NativeGetDeviceDiagnostics(device, &result);
         return result;
     }
     [CallingConvention(.Cdecl), LinkName("nga_supports_texture_format")]

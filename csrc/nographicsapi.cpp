@@ -44,6 +44,10 @@ void nga_init_DeviceMemoryStats(nga_DeviceMemoryStats* value)
 {
     *value = {};
 }
+void nga_init_DeviceDiagnostics(nga_DeviceDiagnostics* value)
+{
+    *value = {};
+}
 void nga_init_DeviceCaps(nga_DeviceCaps* value)
 {
     *value = {};
@@ -189,6 +193,14 @@ void nga_get_device_caps(const nga_Device* device, nga_DeviceCaps* result)
 void nga_get_device_memory_stats(const nga_Device* device, nga_DeviceMemoryStats* result)
 {
     *result = gpu::get_device_memory_stats(device);
+}
+void nga_set_device_diagnostics_enabled(nga_Device* device, bool enabled)
+{
+    gpu::set_device_diagnostics_enabled(device, enabled);
+}
+void nga_get_device_diagnostics(nga_Device* device, nga_DeviceDiagnostics* result)
+{
+    *result = gpu::get_device_diagnostics(device);
 }
 bool nga_supports_texture_format(const nga_Device* device, nga_Format format, nga_TextureUsage usage)
 {

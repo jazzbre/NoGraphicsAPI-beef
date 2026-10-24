@@ -57,6 +57,7 @@ using nga_TimelinePoint = gpu::TimelinePoint;
 using nga_SubmitDesc = gpu::SubmitDesc;
 using nga_TextureFormatInfo = gpu::TextureFormatInfo;
 using nga_DeviceMemoryStats = gpu::DeviceMemoryStats;
+using nga_DeviceDiagnostics = gpu::DeviceDiagnostics;
 using nga_DeviceCaps = gpu::DeviceCaps;
 using nga_DeviceDesc = gpu::DeviceDesc;
 using nga_DeviceInit = gpu::DeviceInit;
@@ -288,6 +289,7 @@ typedef struct nga_TimelinePoint nga_TimelinePoint;
 typedef struct nga_SubmitDesc nga_SubmitDesc;
 typedef struct nga_TextureFormatInfo nga_TextureFormatInfo;
 typedef struct nga_DeviceMemoryStats nga_DeviceMemoryStats;
+typedef struct nga_DeviceDiagnostics nga_DeviceDiagnostics;
 typedef struct nga_DeviceCaps nga_DeviceCaps;
 typedef struct nga_DeviceDesc nga_DeviceDesc;
 typedef struct nga_DeviceInit nga_DeviceInit;
@@ -420,6 +422,30 @@ struct nga_DeviceMemoryStats
     bool allocations_available;
     bool local_available;
     bool nonlocal_available;
+};
+struct nga_DeviceDiagnostics
+{
+    double timeline_wait_ms;
+    double idle_wait_ms;
+    double swapchain_resize_ms;
+    double queue_submit_ms;
+    double present_ms;
+    uint64_t timeline_wait_count;
+    uint64_t idle_wait_count;
+    uint64_t swapchain_resize_count;
+    uint64_t queue_submit_count;
+    uint64_t present_count;
+    uint64_t validation_message_count;
+    uint64_t last_wait_target;
+    uint64_t last_wait_completed;
+    uint64_t last_submit_target;
+    uint64_t last_submit_completed;
+    uint32_t swapchain_width;
+    uint32_t swapchain_height;
+    uint32_t swapchain_image_count;
+    uint32_t swapchain_image_index;
+    int32_t present_result;
+    bool available;
 };
 struct nga_DeviceCaps
 {
@@ -655,6 +681,7 @@ extern "C"
     void nga_init_SubmitDesc(nga_SubmitDesc* value);
     void nga_init_TextureFormatInfo(nga_TextureFormatInfo* value);
     void nga_init_DeviceMemoryStats(nga_DeviceMemoryStats* value);
+    void nga_init_DeviceDiagnostics(nga_DeviceDiagnostics* value);
     void nga_init_DeviceCaps(nga_DeviceCaps* value);
     void nga_init_DeviceDesc(nga_DeviceDesc* value);
     void nga_init_DeviceInit(nga_DeviceInit* value);
@@ -687,6 +714,8 @@ extern "C"
     void nga_destroy_device(nga_Device* device);
     void nga_get_device_caps(const nga_Device* device, nga_DeviceCaps* result);
     void nga_get_device_memory_stats(const nga_Device* device, nga_DeviceMemoryStats* result);
+    void nga_set_device_diagnostics_enabled(nga_Device* device, bool enabled);
+    void nga_get_device_diagnostics(nga_Device* device, nga_DeviceDiagnostics* result);
     bool nga_supports_texture_format(const nga_Device* device, nga_Format format, nga_TextureUsage usage);
     void nga_get_drawable_extent(nga_Device* device, nga_uint32x2* result);
     nga_TimelineSemaphore* nga_create_timeline_semaphore(nga_Device* device, uint64_t initial_value);
